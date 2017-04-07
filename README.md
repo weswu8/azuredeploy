@@ -36,11 +36,11 @@ Azure采用资源组的方式管理资源，在架构设计时建议一个资源
 2.在 Powershell IDE中 运行 deploy.ps1 脚本即可.
 	如果db使用高级存储账号，请在deploy-master.json模板中修改如下参数:
 	
-		"db001VMSize": "Standard_DS1_v2"
-		
-		"premiumStorageAccountName": {
-			value": "[reference('storageAccountslinkedTemplate').outputs.premiumStorageAccountName.value]"
-		},
+	"db001VMSize": "Standard_DS1_v2"
+	
+	"premiumStorageAccountName": {
+		value": "[reference('storageAccountslinkedTemplate').outputs.premiumStorageAccountName.value]"
+	},
 		
 3.删除或者清空资源，在 Powershell IDE中运行cleanup.ps1 脚本即可.
 
