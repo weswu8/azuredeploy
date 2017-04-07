@@ -1,0 +1,512 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string"
+        }
+    },
+    "variables": {
+        "100_comment": "Common Setting",
+        "location": "[parameters('location')]",
+        "commonResourceGroupName": "weselyRGPrd",
+		"deploymentApiVersion": "2015-01-01",
+        "templatesLink": "https://wesley2017.blob.core.chinacloudapi.cn/pub2017/",
+
+        "200_comment": "Load balancer Setting",
+        "loadBalancerName": "epaylb001",
+        "lbPublicIPAddress1Name": "EPAYLBPUBIP001",
+        "lbFrontendPort1": "80",
+        "lbBackendPort1": "80",
+        "deployLoadBalancer": "deploy-loadbalancer.json",
+
+        "300_comment": "Storage account Setting",
+        "standardStorageAccountName": "stdstorage001",
+        "standardStorageAccountType": "Standard_LRS",
+        "standardStorageAccountTier": "Standard",
+        "premiumStorageAccountName": "prestorage001",
+        "premiumStorageAccountType": "Premium_LRS",
+        "premiumStorageAccountTier": "Premium",
+        "deployStorageAccounts": "deploy-storageaccounts.json",
+
+        "400_comment": "availabilitySet Setting",
+        "webAvailabilitySetName": "webAvSet",
+        "middleAvailabilitySetName": "middleAvSet",
+        "cacheAvailabilitySetName": "cacheAvSet",
+        "dbAvailabilitySetName": "dbAvSet",
+        "deployAvailabilitysets": "deploy-availabilitysets.json",
+
+        "500_comment": "VNet Setting",
+        "vnetName": "epay",
+        "webSubnetName": "public",
+        "webNSGName": "webnsg",
+        "middleSubnetName": "private",
+        "middleNSGName": "middlensg",
+        "cacheSubnetName": "private",
+        "cacheNSGName": "cachensg",
+        "dbSubnetName": "private",
+        "dbNSGName": "dbnsg",
+
+        "600_comment": "default Web VM image",
+        "webImagePublisher": "OpenLogic",
+        "webImageOffer": "CentOS",
+        "webImageSKU": "6.8",
+        "webImageVersion": "latest",
+
+        "700_comment": "default DB VM image",
+        "dbImagePublisher": "OpenLogic",
+        "dbImageOffer": "CentOS",
+        "dbImageSKU": "6.8",
+        "dbImageVersion": "latest",
+
+        "800_comment": "default VM secrets",
+        "adminUsername": "wesley",
+        "adminPassword": "Password-here",
+
+        "900_comment": "web VM Setting",
+        "web001VMName": "web001",
+        "web001VMSize": "Standard_D1_v2",
+        "web001VMNicName1": "web001-nic",
+        "web001VMPrivateIPAddress1": "172.0.0.5",
+        "web001VMDataDiskSize": "50",
+        "deployVMWeb001": "deploy-vm-web001.json",
+        "web002VMName": "web002",
+        "web002VMSize": "Standard_D1_v2",
+        "web002VMNicName1": "web002-nic",
+        "web002VMPrivateIPAddress1": "172.0.0.6",
+        "web002VMDataDiskSize": "50",
+        "deployVMWeb002": "deploy-vm-web002.json",
+
+        "1000_comment": "Middle VM Setting",
+        "middle001VMName": "middle001",
+        "middle001VMSize": "Standard_D1_v2",
+        "middle001VMNicName1": "middle001-nic",
+        "middle001VMPrivateIPAddress1": "172.0.1.15",
+        "middle001VMDataDiskSize": "50",
+
+        "1100_comment": "Cache VM Setting",
+        "cache001VMName": "cache001",
+        "cache001VMSize": "Standard_D1_v2",
+        "cache001VMNicName1": "cache001-nic",
+        "cache001VMPrivateIPAddress1": "172.0.0.15",
+        "cache001VMDataDiskSize": "50",
+
+        "1200_comment": "DB VM Setting",
+        "db001VMName": "db001",
+        "db001VMSize": "Standard_DS1_v2",
+        "db001VMNicName1": "db001-nic",
+        "db001VMPrivateIPAddress1": "172.0.1.5",
+        "db001VMDataDiskSize": "200",
+        "deployVMdb001": "deploy-vm-db001.json",
+        "db002VMName": "db002",
+        "db002VMSize": "Standard_DS1_v2",
+        "db002VMNicName1": "db002-nic",
+        "db002VMPrivateIPAddress1": "172.0.1.6",
+        "db002VMDataDiskSize": "200",
+        "deployVMdb002": "deploy-vm-db002.json",
+
+
+        "vnetID": "[resourceId(variables('commonResourceGroupName'),'Microsoft.Network/virtualNetworks',variables('vnetName'))]",
+        "webSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('webSubnetName'))]",
+        "middleSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('middleSubnetName'))]",
+        "cacheSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('cacheSubnetName'))]",
+        "dbSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('dbSubnetName'))]",
+        "lbID": "[resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName'))]",
+        "lbFrontEndIPConfigID": "[concat(variables('lbID'),'/frontendIPConfigurations/','LoadBalancerFrontEnd')]",
+        "lbBackendAddressPoolID": "[concat(variables('lbID'), '/backendAddressPools/', 'LoadBalancerBackend')]"
+    },
+    "resources": [{
+            "comments": "Create the StorageAccount",
+            "apiVersion": "[variables('deploymentApiVersion')]",
+            "name": "storageAccountslinkedTemplate",
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(variables('templatesLink'), variables('deployStorageAccounts'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[variables('location')]"
+                    },
+                    "standardStorageAccountName": {
+                        "value": "[variables('standardStorageAccountName')]"
+                    },
+                    "standardStorageAccountType": {
+                        "value": "[variables('standardStorageAccountType')]"
+                    },
+                    "standardStorageAccountTier": {
+                        "value": "[variables('standardStorageAccountTier')]"
+                    },
+                    "premiumStorageAccountName": {
+                        "value": "[variables('premiumStorageAccountName')]"
+                    },
+                    "premiumStorageAccountType": {
+                        "value": "[variables('premiumStorageAccountType')]"
+                    },
+                    "premiumStorageAccountTier": {
+                        "value": "[variables('premiumStorageAccountTier')]"
+                    }
+                }
+            }
+        },
+        {
+            "comments": "Create the LoadBalancer",
+            "apiVersion": "[variables('deploymentApiVersion')]",
+            "name": "loadBalancerlinkedTemplate",
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(variables('templatesLink'), variables('deployLoadBalancer'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[variables('location')]"
+                    },
+                    "commonResourceGroupName": {
+                        "value": "[variables('commonResourceGroupName')]"
+                    },
+                    "loadBalancerName": {
+                        "value": "[variables('loadBalancerName')]"
+                    },
+                    "lbPublicIPAddress1Name": {
+                        "value": "[variables('lbPublicIPAddress1Name')]"
+                    },
+                    "lbFrontendPort1": {
+                        "value": "[variables('lbFrontendPort1')]"
+                    },
+                    "lbBackendPort1": {
+                        "value": "[variables('lbBackendPort1')]"
+                    }
+                }
+            }
+        },
+        {
+            "comments": "Create the AvailabilitySet",
+            "apiVersion": "[variables('deploymentApiVersion')]",
+            "name": "availabilitySetlinkedTemplate",
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(variables('templatesLink'), variables('deployAvailabilitysets'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[variables('location')]"
+                    },
+                    "webAvailabilitySetName": {
+                        "value": "[variables('webAvailabilitySetName')]"
+                    },
+                    "middleAvailabilitySetName": {
+                        "value": "[variables('middleAvailabilitySetName')]"
+                    },
+                    "cacheAvailabilitySetName": {
+                        "value": "[variables('cacheAvailabilitySetName')]"
+                    },
+                    "dbAvailabilitySetName": {
+                        "value": "[variables('dbAvailabilitySetName')]"
+                    }
+                }
+            }
+        },
+        {
+            "comments": "Create the VM web001",
+            "apiVersion": "[variables('deploymentApiVersion')]",
+            "name": "vmWeb001linkedTemplate",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "storageAccountslinkedTemplate",
+                "availabilitySetlinkedTemplate",
+                "loadBalancerlinkedTemplate"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(variables('templatesLink'), variables('deployVMWeb001'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[variables('location')]"
+                    },
+                    "web001VMName": {
+                        "value": "[variables('web001VMName')]"
+                    },
+                    "web001VMSize": {
+                        "value": "[variables('web001VMSize')]"
+                    },
+                    "web001VMNicName1": {
+                        "value": "[variables('web001VMNicName1')]"
+                    },
+                    "web001VMPrivateIPAddress1": {
+                        "value": "[variables('web001VMPrivateIPAddress1')]"
+                    },
+                    "web001VMDataDiskSize": {
+                        "value": "[variables('web001VMDataDiskSize')]"
+                    },
+                    "webSubnetRef": {
+                        "value": "[variables('webSubnetRef')]"
+                    },
+                    "loadBalancerName": {
+                        "value": "[variables('loadBalancerName')]"
+                    },
+                    "commonResourceGroupName": {
+                        "value": "[variables('commonResourceGroupName')]"
+                    },
+                    "webNSGName": {
+                        "value": "[variables('webNSGName')]"
+                    },
+                    "webAvailabilitySetName": {
+                        "value": "[variables('webAvailabilitySetName')]"
+                    },
+                    "standardStorageAccountName": {
+                        "value": "[reference('storageAccountslinkedTemplate').outputs.standardStorageAccountName.value]"
+                    },
+                    "webImagePublisher": {
+                        "value": "[variables('webImagePublisher')]"
+                    },
+                    "webImageOffer": {
+                        "value": "[variables('webImageOffer')]"
+                    },
+                    "webImageSKU": {
+                        "value": "[variables('webImageSKU')]"
+                    },
+                    "webImageVersion": {
+                        "value": "[variables('webImageVersion')]"
+                    },
+                    "adminUsername": {
+                        "value": "[variables('adminUsername')]"
+                    },
+                    "adminPassword": {
+                        "value": "[variables('adminPassword')]"
+                    }
+                }
+            }
+        },
+        {
+            "comments": "Create the VM web002",
+            "apiVersion": "[variables('deploymentApiVersion')]",
+            "name": "vmWeb002linkedTemplate",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "storageAccountslinkedTemplate",
+                "availabilitySetlinkedTemplate",
+                "loadBalancerlinkedTemplate"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(variables('templatesLink'), variables('deployVMWeb002'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[variables('location')]"
+                    },
+                    "web002VMName": {
+                        "value": "[variables('web002VMName')]"
+                    },
+                    "web002VMSize": {
+                        "value": "[variables('web002VMSize')]"
+                    },
+                    "web002VMNicName1": {
+                        "value": "[variables('web002VMNicName1')]"
+                    },
+                    "web002VMPrivateIPAddress1": {
+                        "value": "[variables('web002VMPrivateIPAddress1')]"
+                    },
+                    "web002VMDataDiskSize": {
+                        "value": "[variables('web002VMDataDiskSize')]"
+                    },
+                    "webSubnetRef": {
+                        "value": "[variables('webSubnetRef')]"
+                    },
+                    "loadBalancerName": {
+                        "value": "[variables('loadBalancerName')]"
+                    },
+                    "commonResourceGroupName": {
+                        "value": "[variables('commonResourceGroupName')]"
+                    },
+                    "webNSGName": {
+                        "value": "[variables('webNSGName')]"
+                    },
+                    "webAvailabilitySetName": {
+                        "value": "[variables('webAvailabilitySetName')]"
+                    },
+                    "standardStorageAccountName": {
+                        "value": "[reference('storageAccountslinkedTemplate').outputs.standardStorageAccountName.value]"
+                    },
+                    "webImagePublisher": {
+                        "value": "[variables('webImagePublisher')]"
+                    },
+                    "webImageOffer": {
+                        "value": "[variables('webImageOffer')]"
+                    },
+                    "webImageSKU": {
+                        "value": "[variables('webImageSKU')]"
+                    },
+                    "webImageVersion": {
+                        "value": "[variables('webImageVersion')]"
+                    },
+                    "adminUsername": {
+                        "value": "[variables('adminUsername')]"
+                    },
+                    "adminPassword": {
+                        "value": "[variables('adminPassword')]"
+                    }
+                }
+            }
+        },
+        {
+            "comments": "Create the VM db001",
+            "apiVersion": "[variables('deploymentApiVersion')]",
+            "name": "vmdb001linkedTemplate",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "storageAccountslinkedTemplate",
+                "availabilitySetlinkedTemplate"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(variables('templatesLink'), variables('deployVMdb001'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[variables('location')]"
+                    },
+                    "db001VMName": {
+                        "value": "[variables('db001VMName')]"
+                    },
+                    "db001VMSize": {
+                        "value": "[variables('db001VMSize')]"
+                    },
+                    "db001VMNicName1": {
+                        "value": "[variables('db001VMNicName1')]"
+                    },
+                    "db001VMPrivateIPAddress1": {
+                        "value": "[variables('db001VMPrivateIPAddress1')]"
+                    },
+                    "db001VMDataDiskSize": {
+                        "value": "[variables('db001VMDataDiskSize')]"
+                    },
+                    "dbSubnetRef": {
+                        "value": "[variables('dbSubnetRef')]"
+                    },
+                    "commonResourceGroupName": {
+                        "value": "[variables('commonResourceGroupName')]"
+                    },
+                    "dbNSGName": {
+                        "value": "[variables('dbNSGName')]"
+                    },
+                    "dbAvailabilitySetName": {
+                        "value": "[variables('dbAvailabilitySetName')]"
+                    },
+                    "standardStorageAccountName": {
+                        "value": "[reference('storageAccountslinkedTemplate').outputs.standardStorageAccountName.value]"
+                    },
+                    "premiumStorageAccountName": {
+                        "value": "[reference('storageAccountslinkedTemplate').outputs.standardStorageAccountName.value]"
+                    },
+                    "dbImagePublisher": {
+                        "value": "[variables('dbImagePublisher')]"
+                    },
+                    "dbImageOffer": {
+                        "value": "[variables('dbImageOffer')]"
+                    },
+                    "dbImageSKU": {
+                        "value": "[variables('webImageSKU')]"
+                    },
+                    "dbImageVersion": {
+                        "value": "[variables('dbImageVersion')]"
+                    },
+                    "adminUsername": {
+                        "value": "[variables('adminUsername')]"
+                    },
+                    "adminPassword": {
+                        "value": "[variables('adminPassword')]"
+                    }
+                }
+            }
+        },
+        {
+            "comments": "Create the VM db002",
+            "apiVersion": "[variables('deploymentApiVersion')]",
+            "name": "vmdb002linkedTemplate",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "storageAccountslinkedTemplate",
+                "availabilitySetlinkedTemplate"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(variables('templatesLink'), variables('deployVMdb002'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[variables('location')]"
+                    },
+                    "db002VMName": {
+                        "value": "[variables('db002VMName')]"
+                    },
+                    "db002VMSize": {
+                        "value": "[variables('db002VMSize')]"
+                    },
+                    "db002VMNicName1": {
+                        "value": "[variables('db002VMNicName1')]"
+                    },
+                    "db002VMPrivateIPAddress1": {
+                        "value": "[variables('db002VMPrivateIPAddress1')]"
+                    },
+                    "db002VMDataDiskSize": {
+                        "value": "[variables('db002VMDataDiskSize')]"
+                    },
+                    "dbSubnetRef": {
+                        "value": "[variables('dbSubnetRef')]"
+                    },
+                    "commonResourceGroupName": {
+                        "value": "[variables('commonResourceGroupName')]"
+                    },
+                    "dbNSGName": {
+                        "value": "[variables('dbNSGName')]"
+                    },
+                    "dbAvailabilitySetName": {
+                        "value": "[variables('dbAvailabilitySetName')]"
+                    },
+                    "standardStorageAccountName": {
+                        "value": "[reference('storageAccountslinkedTemplate').outputs.standardStorageAccountName.value]"
+                    },
+                    "premiumStorageAccountName": {
+                        "value": "[reference('storageAccountslinkedTemplate').outputs.standardStorageAccountName.value]"
+                    },
+                    "dbImagePublisher": {
+                        "value": "[variables('dbImagePublisher')]"
+                    },
+                    "dbImageOffer": {
+                        "value": "[variables('dbImageOffer')]"
+                    },
+                    "dbImageSKU": {
+                        "value": "[variables('webImageSKU')]"
+                    },
+                    "dbImageVersion": {
+                        "value": "[variables('dbImageVersion')]"
+                    },
+                    "adminUsername": {
+                        "value": "[variables('adminUsername')]"
+                    },
+                    "adminPassword": {
+                        "value": "[variables('adminPassword')]"
+                    }
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,151 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+        },
+        "db001VMName": {
+            "type": "string"
+        },
+        "db001VMSize": {
+            "type": "string"
+        },
+        "db001VMNicName1": {
+            "type": "string"
+        },
+        "db001VMPrivateIPAddress1": {
+            "type": "string"
+        },
+        "db001VMDataDiskSize": {
+            "type": "string"
+        },
+        "dbSubnetRef": {
+            "type": "string"
+        },
+        "commonResourceGroupName": {
+            "type": "string"
+        },
+        "dbNSGName": {
+            "type": "string"
+        },
+        "dbAvailabilitySetName": {
+            "type": "string"
+        },
+        "standardStorageAccountName": {
+            "type": "string"
+        },
+        "premiumStorageAccountName": {
+            "type": "string"
+        },
+        "dbImagePublisher": {
+            "type": "string"
+        },
+        "dbImageOffer": {
+            "type": "string"
+        },
+        "dbImageSKU": {
+            "type": "string"
+        },
+        "dbImageVersion": {
+            "type": "string"
+        },
+        "adminUsername": {
+            "type": "string"
+        },
+        "adminPassword": {
+            "type": "string"
+        }
+    },
+    "variables": {
+
+    },
+    "resources": [{
+            "comments": "db001 vm nic.",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[parameters('db001VMNicName1')]",
+            "apiVersion": "2016-03-30",
+            "location": "[parameters('location')]",
+            "properties": {
+                "ipConfigurations": [{
+                    "name": "ipconfig1",
+                    "properties": {
+                        "privateIPAddress": "[parameters('db001VMPrivateIPAddress1')]",
+                        "privateIPAllocationMethod": "Static",
+                        "subnet": {
+                            "id": "[parameters('dbSubnetRef')]"
+                        }
+                    }
+                }],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId(parameters('commonResourceGroupName'),'Microsoft.Network/networkSecurityGroups', parameters('dbNSGName'))]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "db001 vm",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[parameters('db001VMName')]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "[parameters('location')]",
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets',parameters('dbAvailabilitySetName'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "[parameters('db001VMSize')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[parameters('dbImagePublisher')]",
+                        "offer": "[parameters('dbImageOffer')]",
+                        "sku": "[parameters('dbImageSKU')]",
+                        "version": "[parameters('dbImageVersion')]"
+                    },
+                    "osDisk": {
+                        "name": "osdisk",
+                        "vhd": {
+                            "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', parameters('premiumStorageAccountName')), '2016-01-01').primaryEndpoints.blob, parameters('db001VMName'),'/','osdisk','.vhd')]"
+                        },
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    },
+                    "dataDisks": [{
+                        "name": "datadisk1",
+                        "diskSizeGB": "[parameters('db001VMDataDiskSize')]",
+                        "lun": 0,
+                        "vhd": {
+                            "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', parameters('premiumStorageAccountName')), '2016-01-01').primaryEndpoints.blob, parameters('db001VMName'),'/','datadisk1','.vhd')]"
+                        },
+                        "createOption": "Empty"
+                    }]
+                },
+                "osProfile": {
+                    "computerName": "[parameters('db001VMName')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [{
+                        "id": "[resourceId('Microsoft.Network/networkInterfaces',parameters('db001VMNicName1'))]"
+                    }]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[concat('http://',parameters('standardStorageAccountName'),'.blob.core.chinacloudapi.cn')]"
+                    }
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', parameters('db001VMNicName1'))]"
+            ]
+        }
+    ],
+    "outputs": {}
+}

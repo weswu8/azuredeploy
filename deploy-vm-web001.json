@@ -1,0 +1,174 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string"
+        },
+        "web001VMName": {
+            "type": "string"
+        },
+        "web001VMSize": {
+            "type": "string"
+        },
+        "web001VMNicName1": {
+            "type": "string"
+        },
+        "web001VMPrivateIPAddress1": {
+            "type": "string"
+        },
+        "web001VMDataDiskSize": {
+            "type": "string"
+        },
+        "webSubnetRef": {
+            "type": "string"
+        },
+        "loadBalancerName": {
+            "type": "string"
+        },
+        "commonResourceGroupName": {
+            "type": "string"
+        },
+        "webNSGName": {
+            "type": "string"
+        },
+        "webAvailabilitySetName": {
+            "type": "string"
+        },
+        "standardStorageAccountName": {
+            "type": "string"
+        },
+        "webImagePublisher": {
+            "type": "string"
+        },
+        "webImageOffer": {
+            "type": "string"
+        },
+        "webImageSKU": {
+            "type": "string"
+        },
+        "webImageVersion": {
+            "type": "string"
+        },
+        "adminUsername": {
+            "type": "string"
+        },
+        "adminPassword": {
+            "type": "string"
+        }
+    },
+    "variables": {
+
+    },
+    "resources": [{
+            "comments": "web001 vm nic.",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[parameters('web001VMNicName1')]",
+            "apiVersion": "2016-03-30",
+            "location": "[parameters('location')]",
+            "properties": {
+                "ipConfigurations": [{
+                    "name": "ipconfig1",
+                    "properties": {
+                        "privateIPAddress": "[parameters('web001VMPrivateIPAddress1')]",
+                        "privateIPAllocationMethod": "Static",
+                        "subnet": {
+                            "id": "[parameters('webSubnetRef')]"
+                        },
+                        "loadBalancerBackendAddressPools": [{
+                            "id": "[concat(resourceId('Microsoft.Network/loadBalancers',parameters('loadBalancerName')), '/backendAddressPools/loadBalancerBackEnd')]"
+                        }]
+                    }
+                }],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId(parameters('commonResourceGroupName'),'Microsoft.Network/networkSecurityGroups', parameters('webNSGName'))]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "web001 vm",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[parameters('web001VMName')]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "[parameters('location')]",
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets',parameters('webAvailabilitySetName'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "[parameters('web001VMSize')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[parameters('webImagePublisher')]",
+                        "offer": "[parameters('webImageOffer')]",
+                        "sku": "[parameters('webImageSKU')]",
+                        "version": "[parameters('webImageVersion')]"
+                    },
+                    "osDisk": {
+                        "name": "osdisk",
+                        "vhd": {
+                            "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', parameters('standardStorageAccountName')), '2016-01-01').primaryEndpoints.blob, parameters('web001VMName'),'/','osdisk','.vhd')]"
+                        },
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    },
+                    "dataDisks": [{
+                        "name": "datadisk1",
+                        "diskSizeGB": "[parameters('web001VMDataDiskSize')]",
+                        "lun": 0,
+                        "vhd": {
+                            "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', parameters('standardStorageAccountName')), '2016-01-01').primaryEndpoints.blob, parameters('web001VMName'),'/','datadisk1','.vhd')]"
+                        },
+                        "createOption": "Empty"
+                    }]
+                },
+                "osProfile": {
+                    "computerName": "[parameters('web001VMName')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [{
+                        "id": "[resourceId('Microsoft.Network/networkInterfaces',parameters('web001VMNicName1'))]"
+                    }]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[concat('http://',parameters('standardStorageAccountName'),'.blob.core.chinacloudapi.cn')]"
+                    }
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', parameters('web001VMNicName1'))]"
+            ]
+        },
+        {
+            "comments": "web001 extensions",
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(parameters('web001VMName'),'/', 'customext')]",
+            "apiVersion": "2015-06-15",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[concat('Microsoft.Compute/virtualMachines/', parameters('web001VMName'))]"
+            ],
+            "properties": {
+                "publisher": "Microsoft.Azure.Extensions",
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.0",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "fileUris": ["https://wesley2017.blob.core.chinacloudapi.cn/pub2017/cleanup.ps1"],
+                    "commandToExecute": "touch test.json"
+                }
+            }
+        }
+    ],
+    "outputs": {}
+}

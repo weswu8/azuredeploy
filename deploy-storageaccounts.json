@@ -1,0 +1,70 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string"
+        },
+        "standardStorageAccountName": {
+            "type": "string"
+        },
+        "standardStorageAccountType": {
+            "type": "string"
+        },
+        "standardStorageAccountTier": {
+            "type": "string"
+        },
+        "premiumStorageAccountName": {
+            "type": "string"
+        },
+        "premiumStorageAccountType": {
+            "type": "string"
+        },
+        "premiumStorageAccountTier": {
+            "type": "string"
+        }
+    },
+    "variables": {
+        "standardStorageAccountName": "[parameters('standardStorageAccountName')]",
+        "premiumStorageAccountName": "[parameters('premiumStorageAccountName')]"
+    },
+    "resources": [{
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[parameters('standardStorageAccountName')]",
+            "kind": "Storage",
+            "apiVersion": "2016-01-01",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "[parameters('standardStorageAccountType')]",
+                "tier": "[parameters('standardStorageAccountTier')]"
+            },
+            "tags": {},
+            "properties": {},
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[parameters('premiumStorageAccountName')]",
+            "kind": "Storage",
+            "apiVersion": "2016-01-01",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "[parameters('premiumStorageAccountType')]",
+                "tier": "[parameters('premiumStorageAccountTier')]"
+            },
+            "tags": {},
+            "properties": {},
+            "dependsOn": []
+        }
+    ],
+    "outputs": {
+        "standardStorageAccountName": {
+            "type": "string",
+            "value": "[variables('standardStorageAccountName')]"
+        },
+        "premiumStorageAccountName": {
+            "type": "string",
+            "value": "[variables('premiumStorageAccountName')]"
+        }
+    }
+}

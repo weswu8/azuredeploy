@@ -1,0 +1,81 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+        },
+        "commonResourceGroupName": {
+            "type": "string",
+        },
+        "loadBalancerName": {
+            "type": "string",
+        },
+        "lbPublicIPAddress1Name": {
+            "type": "string",
+        },
+        "lbFrontendPort1": {
+            "type": "string",
+        },
+        "lbBackendPort1": {
+            "type": "string",
+        }
+    },
+    "variables": {
+        "lbID": "[resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancerName'))]",
+        "lbFrontEndIPConfigID": "[concat(variables('lbID'),'/frontendIPConfigurations/','LoadBalancerFrontEnd')]",
+        "lbBackendAddressPoolID": "[concat(variables('lbID'), '/backendAddressPools/', 'LoadBalancerBackend')]"
+    },
+    "resources": [{
+        "type": "Microsoft.Network/loadBalancers",
+        "name": "[parameters('loadBalancerName')]",
+        "apiVersion": "2016-03-30",
+        "location": "[parameters('location')]",
+        "properties": {
+            "frontendIPConfigurations": [{
+                "name": "LoadBalancerFrontEnd",
+                "properties": {
+                    "publicIPAddress": {
+                        "id": "[resourceId(parameters('commonResourceGroupName'),'Microsoft.Network/publicIPAddresses', parameters('lbPublicIPAddress1Name'))]"
+                    }
+                }
+            }],
+            "backendAddressPools": [{
+                "name": "LoadBalancerBackend"
+            }],
+            "loadBalancingRules": [{
+                "name": "LB-Rule1",
+                "properties": {
+                    "frontendIPConfiguration": {
+                        "id": "[variables('lbFrontEndIPConfigID')]"
+                    },
+                    "backendAddressPool": {
+                        "id": "[variables('lbBackendAddressPoolID')]"
+                    },
+                    "protocol": "Tcp",
+                    "frontendPort": "[parameters('lbFrontendPort1')]",
+                    "backendPort": "[parameters('lbBackendPort1')]",
+                    "enableFloatingIP": false,
+                    "idleTimeoutInMinutes": 5,
+                    "probe": {
+                        "id": "[concat(variables('lbID'),'/probes/lbProbe1')]"
+                    }
+                }
+            }],
+            "probes": [{
+                "name": "lbProbe1",
+                "properties": {
+                    "protocol": "Tcp",
+                    "port": "[parameters('lbBackendPort1')]",
+                    "intervalInSeconds": 5,
+                    "numberOfProbes": 2
+                }
+            }],
+            "inboundNatRules": [],
+            "outboundNatRules": [],
+            "inboundNatPools": []
+        },
+        "dependsOn": []
+    }],
+    "outputs": {}
+}
